@@ -1,0 +1,67 @@
+menu "ESP Multi Speaker System"
+    choice
+        prompt "Select device type"
+        default MSS_DEVICE_MASTER
+        help
+            Choose the role of this device in the speaker system (MASTER or SLAVE). Note that there can only be one MASTER device.
+    
+        config MSS_DEVICE_MASTER
+            bool "Master Device"
+            
+        config MSS_DEVICE_SLAVE
+            bool "Slave Device"
+    
+    endchoice
+
+    config MSS_WIFI_SSID
+        string "WiFi SSID"
+
+    config MSS_WIFI_PASS
+        string "WiFi Password"
+
+    config MSS_WIFI_MAXIMUM_RETRY
+        int "Maximum retries to connect to WiFi"
+        range 0 65535
+        default 100
+    
+    config MSS_I2C_SCL_IO
+        int "GPIO pin for I2C SCL"
+        range 0 34
+        default 13
+
+    config MSS_I2C_SDA_IO
+        int "GPIO pin for I2C SDA"
+        range 0 34
+        default 15
+
+    config MSS_AMP_I2C_ADDRESS
+        int "I2C address for amplifier"
+        range 0 255
+        default 44
+
+    config MSS_AMP_PDN_PIN
+        int "GPIO pin for amplifier PDN"
+        range 0 34
+        default 2
+
+    config MSS_I2S_LRCK_PIN
+        int "GPIO pin for I2S word clock"
+        range 0 34
+        default 23
+
+    config MSS_I2S_SCLK_PIN
+        int "GPIO pin for I2S serial clock"
+        range 0 34
+        default 18
+
+    config MSS_I2S_SDO_PIN
+        int "GPIO pin for I2S serial data out"
+        range 0 34
+        default 5
+
+    config MSS_I2S_SAMPLE_RATE
+        int "I2S sample rate [Hz]"
+        range 0 192000
+        default 44100
+    
+endmenu

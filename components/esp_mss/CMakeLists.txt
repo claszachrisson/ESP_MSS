@@ -1,0 +1,10 @@
+idf_component_register(SRCS "src/esp_mss.cpp"
+                            "src/util.cpp"
+                            "src/amp.cpp"
+                            "src/a2dp_sink.cpp"
+                            "src/wifi.cpp"
+                            "src/socket.cpp"
+                            "src/i2c_device.cpp"
+                            "src/biquad.cpp"
+                       INCLUDE_DIRS "include" "api"
+                       REQUIRES bt nvs_flash nvs_flash esp_wifi driver esp_driver_i2c)
