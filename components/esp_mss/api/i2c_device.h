@@ -45,7 +45,10 @@ protected:
     esp_err_t register_read_byte(uint8_t reg_addr, uint8_t *dest_data);
     esp_err_t register_read_bytes(uint8_t reg_addr, uint8_t *dest_data, size_t len);
     esp_err_t register_write_byte(uint8_t reg_addr, uint8_t value);
+
     esp_err_t register_write_bytes(uint8_t reg_addr, std::span<const uint8_t> bytes);
+    esp_err_t register_write_bytes(uint8_t reg_addr, const uint8_t* bytes, size_t len);
+
     virtual void register_write_random_bytes(std::span<const i2c_pair> i2c_pairs);
 private:
     static constexpr char device_name[] = "I2C";

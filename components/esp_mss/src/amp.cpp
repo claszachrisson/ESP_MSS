@@ -63,45 +63,15 @@ const uint8_t TAS5805M::pg0_bk0_sequence[][2] = {
 	{TAS_GOTO_PG , TAS_ZERO},
 };
 
-/*array<uint8_t, 40> TAS5805M::dsp_bq_right = {{
-	0x08, 0x05, 0x28, 0x6d, // BQ 1 B0
-	0xf0, 0x05, 0xf2, 0x41, //		B1
-	0x07, 0xf5, 0x2b, 0x44, //		B2
-	0x0f, 0xfa, 0x0d, 0xbf, //		A1
-	0xf8, 0x05, 0xac, 0x4f, //		A2
-	0x06, 0xf5, 0xc8, 0x36, // BQ 2 B0
-	0xf2, 0x14, 0x6f, 0x94, //		B1
-	0x06, 0xf5, 0xc8, 0x36, //		B2
-	0x0f, 0xd7, 0x1a, 0x59, //		A1
-	0xf8, 0x28, 0x23, 0x13  //		A2
-}};*/
-array<uint8_t, 40> TAS5805M::dsp_bq_right = {{
-	0x07, 0xf6, 0x8b, 0x33, // BQ 1 B0
-	0xf0, 0x12, 0xe9, 0x9a, //		B1
-	0x07, 0xf6, 0x8b, 0x33, //		B2
-	0x0f, 0xed, 0x0b, 0x39, //		A1
-	0xf8, 0x12, 0xde, 0x4f, //		A2
-	0x08, 0x00, 0x00, 0x00, // BQ 2 B0
-	0x00, 0x00, 0x00, 0x00, //		B1
-	0x00, 0x00, 0x00, 0x00, //		B2
-	0x00, 0x00, 0x00, 0x00, //		A1
-	0x00, 0x00, 0x00, 0x00  //		A2
-}};
 
-array<uint8_t, 20> TAS5805M::dsp_bq_left = {{
-	0x07, 0xa3, 0x60, 0x91, // BQ 1 B0
-	0xf0, 0xb9, 0x3e, 0xde, //		B1
-	0x07, 0xa3, 0x60, 0x91, //		B2
-	0x0f, 0x42, 0x90, 0x36, //		A1
-	0xf8, 0xb5, 0x0d, 0xf2, //		A2
-}};
-
-
-
-TAS5805M::TAS5805M()
-{
-	this->get_default_config();
-}
+TAS5805M::TAS5805M() :
+    PDN_pin(static_cast<gpio_num_t>(MSS_AMP_PDN_PIN)),
+    LRCK_pin(static_cast<gpio_num_t>(MSS_I2S_LRCK_PIN)),
+    SCLK_pin(static_cast<gpio_num_t>(MSS_I2S_SCLK_PIN)),
+    SDO_pin(static_cast<gpio_num_t>(MSS_I2S_SDO_PIN)),
+    sample_rate(static_cast<gpio_num_t>(MSS_I2S_SAMPLE_RATE)),
+    bq_left(Biquad::BQ_TYPE_HPF, 1500.0),
+    bq_right(Biquad::BQ_TYPE_LPF, 1500.0) {}
 
 TAS5805M_err_t TAS5805M::init() {
 	// Power on the TAS5805M
@@ -109,7 +79,6 @@ TAS5805M_err_t TAS5805M::init() {
 	gpio_set_level(this->PDN_pin, 1);
 	vTaskDelay(xDelay);
 
-	Biquad BQ1 = Biquad(Biquad::BQ_TYPE_HPF, 1000.0, Biquad::Q707, 96000);
 	this->i2c_init();
 
 	i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
@@ -157,7 +126,6 @@ TAS5805M_err_t TAS5805M::init() {
 			return TAS5805M_DEVICE_NOT_FOUND;
 		}
 	}
-	
 	this->register_write_random_bytes(init_sequence);
 
 	TAS5805M_err_t err;
@@ -246,10 +214,10 @@ void TAS5805M::register_write_random_bytes(const std::span<const i2c_pair> i2c_p
 				vTaskDelay(5 / portTICK_PERIOD_MS);
 				break;
 			case TAS_PROG_JUMP_LEFTBQ1:
-				this->register_write_bytes(TAS_DSP_BQ_LEFT1, dsp_bq_left);
+				this->register_write_bytes(TAS_DSP_BQ_LEFT1, bq_left.data(), bq_left.size());
 				break;
 			case TAS_PROG_JUMP_RIGHTBQ1:
-				this->register_write_bytes(TAS_DSP_BQ_RIGHT1, dsp_bq_right);
+				this->register_write_bytes(TAS_DSP_BQ_RIGHT1, bq_right.data(), bq_right.size());
 				break;
 			default:
 				ESP_LOGW(TAS_TAG, "Unhandled PROG_CMD %02X", reg_val);

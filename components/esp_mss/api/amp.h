@@ -112,7 +112,7 @@ private:
     gpio_num_t LRCK_pin;
     gpio_num_t SCLK_pin;
     gpio_num_t SDO_pin;
-    uint32_t sample_rate;
+    uint32_t sample_rate{};
     uint32_t dsp_sample_rate = 96000;
 
 
@@ -122,8 +122,7 @@ private:
     static const array<i2c_pair, 4> set_hiz_state_sequence;
     static const uint8_t pg0_bk0_sequence[][2];
 
-    static array<uint8_t, 20> dsp_bq_left;
-    static array<uint8_t, 40> dsp_bq_right;
+    Biquad bq_left, bq_right;
 
     void get_default_config()
     {

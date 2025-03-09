@@ -70,6 +70,14 @@ esp_err_t I2CDevice::register_write_bytes(const uint8_t reg_addr, const std::spa
 
     return i2c_master_transmit(i2c_handle, buffer, len, DEFAULT_TIMEOUT);
 }
+esp_err_t I2CDevice::register_write_bytes(const uint8_t reg_addr, const uint8_t* bytes, const size_t len) {
+    const size_t write_len = len + 1;
+    uint8_t buffer[write_len];
+    buffer[0] = reg_addr;
+    std::memcpy(&buffer[1], bytes, len);
+
+    return i2c_master_transmit(i2c_handle, buffer, len, DEFAULT_TIMEOUT);
+}
 
 void I2CDevice::register_write_random_bytes(const std::span<const i2c_pair> i2c_pairs) {
     for (const auto&[reg_addr, reg_val] : i2c_pairs)

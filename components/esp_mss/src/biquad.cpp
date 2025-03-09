@@ -10,42 +10,63 @@ const char* TAG = "Biquad";
 double Biquad::clamp_min = std::numeric_limits<int32_t>::min();
 double Biquad::clamp_max = std::numeric_limits<int32_t>::max();
 double Biquad::Q707 = 0.707106781186547;
+double Biquad::signs[] = {1, 1, 1, -1, -1}; // a1 and a2 must be negated
 
-Biquad::Biquad(int type, double char_freq, double Q_factor, int sample_freq=96000) {
+Biquad::Biquad() :
+    type(BQ_TYPE_FLAT),
+    sample_freq(96000),
+    char_freq(-1),
+    Q_factor(1),
+    gain(1)
+{
+    this->i2c_values[0] = 0x08;
+}
+Biquad::Biquad(int type, double char_freq, double Q_factor, double gain, int sample_freq) {
     this->type = type;
     this->char_freq = char_freq;
     this->sample_freq = sample_freq;
     this->Q_factor = Q_factor;
+    this->gain = gain;
+
+    const double w0 = 2.0*M_PI*this->char_freq/this->sample_freq;
+    double alpha=sin(w0)/(2.0*this->Q_factor);
+    ESP_LOGD(TAG, "w0: %lf, alpha: %lf", w0, alpha);
     switch (this->type)
     {
-      case BQ_TYPE_HPF:
+    case BQ_TYPE_HPF:
+    {
+        double a0 = 1 + alpha;
+        this->coefficients[0] =   (1 + cos(w0))/2 / a0; // b0
+        this->coefficients[1] =  -(1 + cos(w0))   / a0; // b1
+        this->coefficients[2] =   (1 + cos(w0))/2 / a0; // b2
+        this->coefficients[3] =  -(2 * cos(w0))   / a0; // a1
+        this->coefficients[4] =   (1 - alpha)     / a0; // a2
+        break;
+    }
+    case BQ_TYPE_LPF:
         {
-            const double w0 = 2.0*M_PI*this->char_freq/this->sample_freq;
-            const double alpha=sin(w0)/(2.0*this->Q_factor);
-            ESP_LOGD(TAG, "w0: %lf, alpha: %lf", w0, alpha);
-            double a0 = 1 + alpha;
-            this->coefficients[0] =   (1 + cos(w0))/2 / a0; // b0
-            this->coefficients[1] =  -(1 + cos(w0))   / a0; // b1
-            this->coefficients[2] =   (1 + cos(w0))/2 / a0; // b2
-            this->coefficients[3] =  -(2 * cos(w0))   / a0; // a1
-            this->coefficients[4] =   (1 - alpha)     / a0; // a2
-            break;
+          ESP_LOGD(TAG, "w0: %lf, alpha: %lf", w0, alpha);
+          double a0 = 1 + alpha;
+          this->coefficients[0] =   (1 - cos(w0))/2 / a0; // b0
+          this->coefficients[1] =   (1 - cos(w0))   / a0; // b1
+          this->coefficients[2] =   (1 - cos(w0))/2 / a0; // b2
+          this->coefficients[3] =  -(2 * cos(w0))   / a0; // a1
+          this->coefficients[4] =   (1 - alpha)     / a0; // a2
+          break;
         }
-      default:
-        ESP_LOGE(TAG, "Invalid Filter type");
+    default:
+        ESP_LOGE(TAG, "Filter type not implemented");
     }
     ESP_LOGD(TAG, "Biquad coefficients: %.12f \t %.12f \t %.12f \t %.12f \t %.12f",
         this->coefficients[0],this->coefficients[1],this->coefficients[2],this->coefficients[3],this->coefficients[4]);
-    this->coefficients[3] = -this->coefficients[3]; // a1 and a2 must be negated
-    this->coefficients[4] = -this->coefficients[4];
     this->convert_to_dsp_format();
 }
 
 void Biquad::convert_to_dsp_format() {
     int32_t intermediates[5]{};
     int dsp_i=0;
-    for (int i = 0; i < this->coefficients.size(); ++i) {
-        intermediates[i] = static_cast<int32_t>( std::clamp(this->coefficients[i] * (1 << (this->decimals)), clamp_min, clamp_max) );
+    for (int i = 0; i < 5; ++i) {
+        intermediates[i] = static_cast<int32_t>( std::clamp(signs[i] * this->coefficients[i] * (1 << this->decimals), clamp_min, clamp_max) );
         for (int j=3; j>=0;j--)
         {
             this->i2c_values[dsp_i++] = (intermediates[i] >> 8*j) & 0xFF;
